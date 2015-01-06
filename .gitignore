@@ -1,3 +1,4 @@
 *.pyc
 *.Rdata
 trash*
+*nogit*
