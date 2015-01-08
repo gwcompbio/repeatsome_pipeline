@@ -1,5 +1,5 @@
 #! /bin/bash
-#SBATCH -t 2:00:00
+#SBATCH -t 48:00:00
 #SBATCH -p short,defq
 #SBATCH -N 1
 
@@ -24,6 +24,6 @@ cmd="nhmmscan --tblout ${outfile} --notextw --cut_ga --cpu $(nproc) ${hmmdb} ${r
 echo "Command:"
 echo $cmd
 
-$cmd
+time $cmd
 
 exit 0
