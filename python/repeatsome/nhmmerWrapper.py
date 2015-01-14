@@ -9,7 +9,7 @@ HMM_DATABASE = "/lustre/groups/cbi/Repeatsome/data/Dfam/Dfam_db/Dfam_1.2.hmm"
 # Number of minutes for each job.
 WALLTIME = 240
 # Number of minutes for collect job.
-COLLECT_WALLTIME = 30
+#COLLECT_WALLTIME = 30
 
 def main(parser):
   import sys
@@ -57,7 +57,7 @@ def main(parser):
   chunk_fofn = '%s/chunk.fofn' % tmpdir
   with open(chunk_fofn,'w') as outh:
     print >>outh, '\n'.join(chunks)
-  print >>sys.stderr, '%s%s' % ('File of file names:'.ljust(35), chunk_fofn)        
+  print >>sys.stderr, '%s%s' % ('File of file names:'.ljust(35), chunk_fofn)
 
   # Submit the scatter jobs
   export_vars = {'chunks':chunk_fofn,'hmmdb':hmmdb,}
@@ -65,7 +65,7 @@ def main(parser):
   
   # Submit the collect job
   export_vars = {'chunks':chunk_fofn,'outfile':outfile,}  
-  collect_jobnum = submit_collect(utils.JOBS['collect_nhmmer'], COLLECT_WALLTIME, export_vars, scatter_jobnum, nosubmit)
+  collect_jobnum = submit_collect(utils.JOBS['collect_nhmmer'], minutes, export_vars, scatter_jobnum, nosubmit)
 
 if __name__ == '__main__':
   import argparse

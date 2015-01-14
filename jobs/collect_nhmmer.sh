@@ -25,7 +25,26 @@ dodelete=false
 echo "[---collect_nhmmer.sh---] ($(date)) Chunks file: $chunks"
 echo "[---collect_nhmmer.sh---] ($(date)) Output file: $outfile"
 
+
+#--- This function checks whether all the output files are present
+function alldone() 
+{
+  local _chunks=$1
+  local _allfound=true;
+  while read fastx; do
+    [[ ! -e "${fastx}.hmm_hits.out" ]] && _allfound=false && break
+  done < $_chunks
+  echo $_allfound
+}
+
+#--- Stay in this loop until the output files are present
+while [[ $(alldone $chunks) = false ]]; do
+  echo "[---collect_nhmmer.sh---] ($(date)) Waiting for jobs to complete..."
+  sleep 10
+done
+
 #--- Start time
+echo "[---collect_nhmmer.sh---] ($(date)) Jobs complete. Concatenating hits files"
 t1=$(date +"%s")
 
 #--- Concatenate hits files
