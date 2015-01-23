@@ -56,7 +56,7 @@ def main(parser):
   
   #--- Get a list of accepted models
   if args.modellist is not None:
-    accepted_models = set([l.strip() for l in open(args.modellist,'rU')])
+    accepted_models = set([l.strip('\n').split('\t')[0] for l in open(args.modellist,'rU')])
   else:
     accepted_models = None
 
@@ -104,7 +104,7 @@ if __name__ == '__main__':
   parser.add_argument('--output', help="Place for output. If --bymodel, a directory is created, otherwise writes to file")
   parser.add_argument('--evalue', type=float, help="Only accept hits <= this E-value threshold")
   
-  parser.add_argument('--modellist', help="File with list of models to be included")
+  parser.add_argument('--modellist', help="File with list of models to be included, one per line. The line may be tab delimited, and the model number is assumed to be in the first column.")
   parser.add_argument('--bymodel', action='store_true' ,help="Write reads matching each model into a seperate file")
   
   parser.add_argument('hitfile', nargs='?', type=argparse.FileType('rU'), default=sys.stdin)
