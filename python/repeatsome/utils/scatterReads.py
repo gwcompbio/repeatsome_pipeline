@@ -46,7 +46,7 @@ def submit_collect(script,minutes,vardict,depend_jobnum,debug=False):
              'export':','.join('%s=%s' % t for t in vardict.iteritems()),
              'depend_jobnum': depend_jobnum,
             }
-  _cmd = 'sbatch -N 1 -p short -t %(minutes)d --export %(export)s --depend=afterok:%(depend_jobnum)s %(script)s' % _args
+  _cmd = 'sbatch -N 1 -p short -t %(minutes)d --export %(export)s --depend=afterany:%(depend_jobnum)s %(script)s' % _args
   print >>sys.stderr, 'Command for collect:\n\t%s' % _cmd
   if debug:
     return "DEBUG"

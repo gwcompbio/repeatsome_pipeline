@@ -65,7 +65,7 @@ done < $chunks
 #--- Clean up temporary files if all were found
 if [[ "$allfound" = true ]]; then
   echo "[---collect_nhmmer.sh---] ($(date)) All output files were found. Cleaning up."
-  ###while read fastx; do rm -f ${fastx}*; done < $chunks
+  while read fastx; do rm -f ${fastx}*; done < $chunks
 
   #--- Remove temporary directory if empty
   [[ $(ls $(dirname $chunks) | wc -l) == "1" ]] && [[ -e $chunks ]] && \
