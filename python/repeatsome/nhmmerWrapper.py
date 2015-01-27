@@ -66,6 +66,14 @@ def main(parser):
   # Submit the collect job
   export_vars = {'chunks':chunk_fofn,'outfile':outfile,}  
   collect_jobnum = submit_collect(utils.JOBS['collect_nhmmer'], minutes, export_vars, scatter_jobnum, nosubmit)
+  
+  if nosubmit:
+    import os
+    print >>sys.stderr, '%s%s' % ('Detected --nosubmit, deleting temporary directory: '.ljust(35), tmpdir)    
+    for f in chunks: os.unlink(f)
+    os.unlink('%s/chunk.fofn' % tmpdir)
+    os.rmdir(tmpdir)
+
 
 if __name__ == '__main__':
   import argparse
