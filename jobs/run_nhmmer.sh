@@ -56,12 +56,12 @@ t1=$(date +"%s")
 
 #--- Run nhmmer
 if [[ "$seqtype" == "fasta" ]]; then
-  head -n $(( $nlines / 2 )) $fastx | nhmmscan --tblout $tmp1 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
-  tail -n+$(( $(( $nlines / 2 )) + 1 )) $fastx | nhmmscan --tblout $tmp2 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
+  head -n $(( $nlines / 2 )) $fastx | nhmmscan --dfamtblout $tmp1 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
+  tail -n+$(( $(( $nlines / 2 )) + 1 )) $fastx | nhmmscan --dfamtblout $tmp2 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
 else
   module load cbiC1
-  head -n $(( $nlines / 2 )) $fastx | inlineFastq2Fasta | nhmmscan --tblout $tmp1 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
-  tail -n+$(( $(( $nlines / 2 )) + 1 )) $fastx | inlineFastq2Fasta | nhmmscan --tblout $tmp2 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
+  head -n $(( $nlines / 2 )) $fastx | inlineFastq2Fasta | nhmmscan --dfamtblout $tmp1 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
+  tail -n+$(( $(( $nlines / 2 )) + 1 )) $fastx | inlineFastq2Fasta | nhmmscan --dfamtblout $tmp2 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
 fi
 
 #--- Wait for jobs to finish
