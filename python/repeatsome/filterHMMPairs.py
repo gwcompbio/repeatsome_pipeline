@@ -29,67 +29,62 @@ def identify_sequence_files(_args):
   return seqfile1,seqfile2,seqtype
 
 
-def get_read_assignments(hitfile, accepted_models=None, threshold=None):
+def get_read_assignments(hitfile, selected_models=None, threshold=None):
   ''' Assign each read to one or more models according to hits file
-        _assignments - Dictionary with read names as keys and corresponding model list as value.
-        _models      - Set of models matched with any read
+      Parameters:
+        hitfile         - File handle or file name of HMM hits (output by nhmmer)
+        selected_models - List of models to allow in assignments. Default (None) is to use
+                          all models
+        threshold       - E-value must be less than or equal to this threshold. Default
+                          (None) is to accept any e-value contained in file.
+      Return Values:
+        _assignments    - Dictionary with read names as keys and list of models as value.
+        _models         - Set of models matched with any read
   '''
   from collections import defaultdict
   
   fh = open(hitfile,'rU') if type(hitfile) is str else hitfile
-  _modelset = set(accepted_models) if accepted_models is not None else None
+  _modelset = set(selected_models) if selected_models is not None else None
   
   _models = set()
   _assignments = defaultdict(set)
   lines = (l.strip('\n').split() for l in fh if not l.startswith('#'))
   for l in lines:
-    if _modelset is not None and l[1] not in _modelset:
+    if _modelset is not None and l[1] not in _modelset:  # Skip hit if model does not match
       continue
     evalue = float(l[12])
-    if threshold is not None and evalue > threshold:
+    if threshold is not None and evalue > threshold:     # Skip hit if e-value exceeds threshold
       continue
-    read_name = l[2]
-    target_accn = l[1]
-    _models.add(target_accn)
-    _assignments[read_name].add(target_accn)
+    # Model accession is in column 1
+    # Read name is in column 2
+    _models.add(l[1])
+    _assignments[l[2]].add(l[1])
   
   return _assignments,_models
 
-"""
-def open_output_files(outdir,models,seqtype):
-  import os
-  if not os.path.isdir(outdir): os.makedirs(outdir)
-  # Create dictionary mapping model accessions to file handles
-  fh_dict = {}
-  for model_accn in models:
-    fh_dict[model_accn] = open('%s/%s.%s' % (outdir,model_accn,seqtype),'w')
-  return fh_dict
-
-def close_output_files(fh_dict):
-  # Close all open file handles  
-  for k,fh in fh_dict.iteritems():
-    fh.close()
-"""
-
 def fastq_iterator(file):
+  ''' Iterates over fastq file (4 lines at a time) '''
   fh = open(file,'rU') if type(file) is str else file
   lines = (l.strip() for l in fh)
   while lines:
     yield [lines.next(),lines.next(),lines.next(),lines.next()]
 
 def paired_fastq_iterator(file1,file2):
+  ''' Iterates over a pair of fastq files'''
   iter1 = fastq_iterator(file1)
   iter2 = fastq_iterator(file2)
   while iter1:
     yield (iter1.next(), iter2.next())
 
 def fasta_iterator(file):
+  ''' Iterates over fasta file (2 lines at a time) '''
   fh = open(file,'rU') if type(file) is str else file
   lines = (l.strip() for l in fh)
   while lines:
     yield [lines.next(),lines.next()]
 
 def paired_fasta_iterator(file1,file2):
+  ''' Iterates over a pair of fasta files '''
   iter1 = fasta_iterator(file1)
   iter2 = fasta_iterator(file2)
   while iter1:
@@ -105,16 +100,23 @@ def main(parser):
   #--- Get a list of accepted models
   if args.modellist is not None:
     modellist = set([l.strip('\n').split('\t')[0] for l in open(args.modellist,'rU')])
+    print >>sys.stderr, '%s%s' % ('Number of models:'.ljust(35), len(modellist))
+    # print >>sys.stderr, '%s%s' % ('Selected models:'.ljust(35), ', '.join(sorted(modellist)))
   else:
     modellist = None
 
-  #--- Parse hits file
-  assignments1,models1 = get_read_assignments(args.hitfile1, accepted_models=modellist, threshold=args.evalue)
-  print >>sys.stderr, '%s%s reads pass filters.' % ('Read assignments 1 loaded:'.ljust(35), len(assignments1))  
-  #print >>sys.stderr, 'Read assignments 1 loaded: %d' % len(assignments1)
-  assignments2,models2 = get_read_assignments(args.hitfile2, accepted_models=modellist, threshold=args.evalue)  
-  print >>sys.stderr, '%s%s reads pass filters.' % ('Read assignments 2 loaded:'.ljust(35), len(assignments2))    
-  #print >>sys.stderr, 'Read assignments 2 loaded: %d' % len(assignments2) 
+  #--- Parse hits files
+  # from mulitprocessing import Pool
+  # pool = Pool()
+  # pool.map(get_read_assignments, args=(args.hitfile1,modellist,args.evalue,))
+  # pool.map(get_read_assignments, args=(args.hitfile2,modellist,args.evalue,))
+  print >>sys.stderr, '%s%s' % ('Parsing hits file:'.ljust(35), args.hitfile1)
+  assignments1,models1 = get_read_assignments(args.hitfile1, selected_models=modellist, threshold=args.evalue)
+  print >>sys.stderr, '%s%s reads after filter.' % ('Hitfile 1 loaded:'.ljust(35), len(assignments1))
+
+  print >>sys.stderr, '%s%s' % ('Parsing hits file:'.ljust(35), args.hitfile2)  
+  assignments2,models2 = get_read_assignments(args.hitfile2, selected_models=modellist, threshold=args.evalue)  
+  print >>sys.stderr, '%s%s reads after filter.' % ('Hitfile 2 loaded:'.ljust(35), len(assignments2))    
   
   nreads = npass = 0
   seqprefix = args.output
@@ -154,7 +156,7 @@ if __name__ == '__main__':
   parser.add_argument('--hitfile1', help="HMMER output file for reads 1")
   parser.add_argument('--hitfile2', help="HMMER output file for reads 2")
   
-  parser.add_argument('--output', default="filteredreads", help="Output prefix. If --bymodel, a directory is created, otherwise writes to file")
+  parser.add_argument('--output', default="filteredreads", help="Output prefix.")# If --bymodel, a directory is created, otherwise writes to file")
   parser.add_argument('--evalue', type=float, help="Only accept hits <= this E-value threshold")
   
   parser.add_argument('--modellist', help="File with list of models to be included, one per line. The line may be tab delimited, and the model number is assumed to be in the first column.")
