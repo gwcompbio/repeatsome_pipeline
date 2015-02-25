@@ -11,6 +11,9 @@ WALLTIME = 240
 # Number of minutes for collect job.
 #COLLECT_WALLTIME = 30
 
+# Maximum walltime. In this case, max walltime to be in short queue
+MAX_WALLTIME = 2880
+
 def main(parser):
   import sys
   import os
@@ -26,13 +29,19 @@ def main(parser):
       nhmmer will process approximately 100K reads per hour using two instances per node (8 cpus each)
   """
   if args.seqs_per_chunk is None:
-    minutes = args.walltime
+    minutes = min(args.walltime, MAX_WALLTIME)
     seqs_per_chunk = int((float(minutes) / 60) * 100000)
   else:
     seqs_per_chunk = args.seqs_per_chunk
     minutes = int((float(seqs_per_chunk) / 100000) * 60)
+    # If calculated minutes is too high, readjust seqs_per_chunk
+    if minutes > MAX_WALLTIME:
+      minutes = min(args.walltime, MAX_WALLTIME)
+      seqs_per_chunk = int((float(minutes) / 60) * 100000)
+
   # Give a bit of padding to the walltime
-  minutes += 30
+  if minutes + 30 < MAX_WALLTIME:
+    minutes += 30
   
   # Set remaining command line args
   hmmdb = args.hmmdb
