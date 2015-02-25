@@ -45,16 +45,21 @@ def get_read_assignments(hitfile, selected_models=None, threshold=None):
   
   fh = open(hitfile,'rU') if type(hitfile) is str else hitfile
   _modelset = set(selected_models) if selected_models is not None else None
-  
   _models = set()
   _assignments = defaultdict(set)
+  evalue_idx = None
   lines = (l.strip('\n').split() for l in fh if not l.startswith('#'))
   for l in lines:
     if _modelset is not None and l[1] not in _modelset:  # Skip hit if model does not match
       continue
-    evalue = float(l[12])
-    if threshold is not None and evalue > threshold:     # Skip hit if e-value exceeds threshold
-      continue
+    if threshold is not None:
+      if evalue_idx is None:
+        # Find the evalue column by testing column 3. If the value is "-" then
+        # this is tblout format and evalue is in column 12. Otherwise it is 
+        # dfamtblout and evalue is in column 4.
+        evalue_idx = 12 if l[3] == "-" else 4
+      if float(l[evalue_idx]) > threshold: # Skip hit if e-value exceeds threshold
+        continue
     # Model accession is in column 1
     # Read name is in column 2
     _models.add(l[1])
@@ -106,10 +111,6 @@ def main(parser):
     modellist = None
 
   #--- Parse hits files
-  # from mulitprocessing import Pool
-  # pool = Pool()
-  # pool.map(get_read_assignments, args=(args.hitfile1,modellist,args.evalue,))
-  # pool.map(get_read_assignments, args=(args.hitfile2,modellist,args.evalue,))
   print >>sys.stderr, '%s%s' % ('Parsing hits file:'.ljust(35), args.hitfile1)
   assignments1,models1 = get_read_assignments(args.hitfile1, selected_models=modellist, threshold=args.evalue)
   print >>sys.stderr, '%s%s reads after filter.' % ('Hitfile 1 loaded:'.ljust(35), len(assignments1))
