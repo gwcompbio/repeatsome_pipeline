@@ -25,6 +25,7 @@ def main(parser):
   if not os.path.exists(seqfile): sys.exit('ERROR: Sequence file does not exist')
 
   """ Timing information for nhmmer
+      !!! THIS INFORMATION ONLY APPLIES TO DFAM 1.2 !!!
       It takes approximately 120 minutes to process 200K reads
       nhmmer will process approximately 100K reads per hour using two instances per node (8 cpus each)
   """
