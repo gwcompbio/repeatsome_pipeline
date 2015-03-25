@@ -4,12 +4,18 @@ import utils
 from utils.scatterReads import identify_sequence_file, split_reads, submit_scatter, submit_collect
 
 #--- Constants
-# Path to HMM database
+# Default path to HMM database
 HMM_DATABASE = "/lustre/groups/cbi/Repeatsome/data/Dfam/Dfam_db/Dfam_1.2.hmm"
-# Number of minutes for each job.
-WALLTIME = 240
-# Number of minutes for collect job.
-#COLLECT_WALLTIME = 30
+# Default number of minutes for each job.
+WALLTIME = 2880
+
+""" Timing information for nhmmer
+    !!! THIS INFORMATION ONLY APPLIES TO DFAM 1.2 !!!
+    It takes approximately 120 minutes to process 200K reads
+    nhmmer will process approximately 100K reads per hour using two instances per node (8 cpus each)
+"""
+# Default number of sequences per job per hour
+SEQS_PER_HOUR = 100000
 
 # Maximum walltime. In this case, max walltime to be in short queue
 MAX_WALLTIME = 2880
@@ -21,32 +27,21 @@ def main(parser):
   args = parser.parse_args()
   seqfile,seqtype = identify_sequence_file(args)
   outfile = args.outfile if args.outfile is not None else '%s.hmm_hits.out' % seqfile
-
+  
   if not os.path.exists(seqfile): sys.exit('ERROR: Sequence file does not exist')
 
-  """ Timing information for nhmmer
-      !!! THIS INFORMATION ONLY APPLIES TO DFAM 1.2 !!!
-      It takes approximately 120 minutes to process 200K reads
-      nhmmer will process approximately 100K reads per hour using two instances per node (8 cpus each)
-  """
-  if args.seqs_per_chunk is None:
-    minutes = min(args.walltime, MAX_WALLTIME)
-    seqs_per_chunk = int((float(minutes) / 60) * 100000)
-  else:
-    seqs_per_chunk = args.seqs_per_chunk
-    minutes = int((float(seqs_per_chunk) / 100000) * 60)
-    # If calculated minutes is too high, readjust seqs_per_chunk
-    if minutes > MAX_WALLTIME:
-      minutes = min(args.walltime, MAX_WALLTIME)
-      seqs_per_chunk = int((float(minutes) / 60) * 100000)
-
-  # Give a bit of padding to the walltime
-  if minutes + 30 < MAX_WALLTIME:
-    minutes += 30
-  
-  # Set remaining command line args
+  # Set other command line args
   hmmdb = args.hmmdb
   nosubmit = args.nosubmit
+  seqs_per_hour = args.seqs_per_hour 
+
+  # Calculate number of sequences per chunk
+  if args.seqs_per_chunk is None:
+    minutes = args.walltime
+    seqs_per_chunk = int((float(minutes) / 60) * seqs_per_hour)
+  else:
+    seqs_per_chunk = args.seqs_per_chunk
+    minutes = int((float(seqs_per_chunk) / seqs_per_hour) * 60)
 
   # Print job parameters
   print >>sys.stderr, '%s%s' % ('Sequence file:'.ljust(35), seqfile)
@@ -71,7 +66,7 @@ def main(parser):
 
   # Submit the scatter jobs
   export_vars = {'chunks':chunk_fofn,'hmmdb':hmmdb,}
-  scatter_jobnum = submit_scatter(utils.JOBS['run_nhmmer'], len(chunks), minutes, export_vars, nosubmit)
+  scatter_jobnum = submit_scatter(utils.JOBS['run_nhmmer'], len(chunks), MAX_WALLTIME, export_vars, nosubmit)
   
   # Submit the collect job
   export_vars = {'chunks':chunk_fofn,'outfile':outfile,}  
@@ -87,7 +82,8 @@ def main(parser):
 
 if __name__ == '__main__':
   import argparse
-  parser = argparse.ArgumentParser(description='Process reads in parallel')
+  parser = argparse.ArgumentParser(description='Process reads in parallel',
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
   parser.add_argument('--fastq', help="Fastq file of reads.")
   parser.add_argument('--fasta', help="Fasta file of reads.")
@@ -95,6 +91,7 @@ if __name__ == '__main__':
   parser.add_argument('--outfile', help="Path for final output")
   
   parser.add_argument('--seqs_per_chunk', type=int, help="Number of sequences per job.")
+  parser.add_argument('--seqs_per_hour', type=int, help="Number of sequences processed per job per hour.", default=SEQS_PER_HOUR)  
   parser.add_argument('--walltime', type=int, help="Number of minutes for jobs.", default=WALLTIME)
   parser.add_argument('--hmmdb', help="path to HMM database", default=HMM_DATABASE)
   parser.add_argument('--nosubmit', action='store_true')

@@ -20,7 +20,13 @@ def submit_scatter(script,njobs,minutes,vardict,debug=False):
              'minutes':minutes,             
              'export':','.join('%s=%s' % t for t in vardict.iteritems())  
             }
-  _cmd = 'sbatch -N 1 -a 1-%(njobs)d -p short -t %(minutes)d --export %(export)s %(script)s' % _args
+  # Choose queue based on walltime requested
+  if _args['minutes'] <= 2880:
+    _args['queue'] = 'short,defq'
+  else:
+    _args['queue'] = 'defq'
+  
+  _cmd = 'sbatch -N 1 -a 1-%(njobs)d -p %(queue)s -t %(minutes)d --export %(export)s %(script)s' % _args
   print >>sys.stderr, 'Command for scatter:\n\t%s' % _cmd
   if debug:
     return "DEBUG"
@@ -46,7 +52,13 @@ def submit_collect(script,minutes,vardict,depend_jobnum,debug=False):
              'export':','.join('%s=%s' % t for t in vardict.iteritems()),
              'depend_jobnum': depend_jobnum,
             }
-  _cmd = 'sbatch -N 1 -p short -t %(minutes)d --export %(export)s --depend=afterany:%(depend_jobnum)s %(script)s' % _args
+  # Choose queue based on walltime requested
+  if _args['minutes'] <= 2880:
+    _args['queue'] = 'short,defq'
+  else:
+    _args['queue'] = 'defq'
+              
+  _cmd = 'sbatch -N 1 -p %(queue)s -t %(minutes)d --export %(export)s --depend=afterany:%(depend_jobnum)s %(script)s' % _args
   print >>sys.stderr, 'Command for collect:\n\t%s' % _cmd
   if debug:
     return "DEBUG"

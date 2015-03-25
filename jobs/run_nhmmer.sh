@@ -54,14 +54,21 @@ echo "[---run_nhmmer.sh---] ($(date)) Final output:      ${fastx}.hmm_hits.out"
 #--- Start time
 t1=$(date +"%s")
 
+#--- Calculate midpoint of file
+midpoint=$(( $nlines / 2 ))
+
 #--- Run nhmmer
 if [[ "$seqtype" == "fasta" ]]; then
-  head -n $(( $nlines / 2 )) $fastx | nhmmscan --dfamtblout $tmp1 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
-  tail -n+$(( $(( $nlines / 2 )) + 1 )) $fastx | nhmmscan --dfamtblout $tmp2 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
+  # Ensure file is split between sequences
+  midpoint=$(( $midpoint + $(( $midpoint % 2 )) ))
+  head -n $midpoint $fastx | nhmmscan --dfamtblout $tmp1 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
+  tail -n+$(( $midpoint + 1 )) $fastx | nhmmscan --dfamtblout $tmp2 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
 else
   module load cbiC1
-  head -n $(( $nlines / 4 )) $fastx | inlineFastq2Fasta | nhmmscan --dfamtblout $tmp1 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
-  tail -n+$(( $(( $nlines / 4 )) + 1 )) $fastx | inlineFastq2Fasta | nhmmscan --dfamtblout $tmp2 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
+  # Ensure file is split between sequences
+  midpoint=$(( $midpoint + $(( $midpoint % 4 )) ))
+  head -n $midpoint $fastx | inlineFastq2Fasta | nhmmscan --dfamtblout $tmp1 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
+  tail -n+$(( $midpoint + 1 )) $fastx | inlineFastq2Fasta | nhmmscan --dfamtblout $tmp2 --notextw --cut_ga --cpu $ncpu $hmmdb - > /dev/null &
 fi
 
 #--- Wait for jobs to finish
